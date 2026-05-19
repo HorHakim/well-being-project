@@ -1,11 +1,16 @@
 from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 
 MODELS = {
 	"knn": {
 		"estimator": KNeighborsClassifier(),
 		"param_grid": {"n_neighbors": list(range(1, 50, 2)), "weights": ["uniform", "distance"]},
+	},
+	"random_forest": {
+		"estimator": RandomForestClassifier(random_state=42, n_jobs=-1),
+		"param_grid": {"n_estimators": [200, 500], "max_depth": [None, 10, 20], "min_samples_split": [2, 5]},
 	},
 }
 
