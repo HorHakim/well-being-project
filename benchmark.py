@@ -1,6 +1,7 @@
 from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 
 
 MODELS = {
@@ -11,6 +12,10 @@ MODELS = {
 	"random_forest": {
 		"estimator": RandomForestClassifier(random_state=42, n_jobs=-1),
 		"param_grid": {"n_estimators": [200, 500], "max_depth": [None, 10, 20], "min_samples_split": [2, 5]},
+	},
+	"svm": {
+		"estimator": SVC(random_state=42),
+		"param_grid": {"C": [1, 10], "kernel": ["rbf"], "gamma": ["scale", "auto"]},
 	},
 }
 
