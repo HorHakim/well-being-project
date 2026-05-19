@@ -1,7 +1,7 @@
 import pandas
 from sklearn.preprocessing import StandardScaler
 
-from benchmark import find_optimal_kvalue
+from benchmark import find_optimal_hyperparameters
 
 def load_data(csv_path, target_col="target"):
 	df = pandas.read_csv(csv_path)
@@ -20,4 +20,4 @@ if __name__ == "__main__":
 	X, Y = load_data(csv_path="bienetre.csv")
 	standard_scaler_object, X_normalized = nomalize(X)
 
-	optimal_n_neighbors = find_optimal_kvalue(X_normalized, Y, scoring="f1_weighted")
+	grid_search = find_optimal_hyperparameters("knn", X_normalized, Y, scoring="f1_weighted")
