@@ -25,3 +25,5 @@ param_grid_svm = {
     "kernel": ["rbf", "linear"],
 }
 tune_model("SVM", SVC(), param_grid_svm, X_normalized, Y)
+
+## python3 script.py ##
