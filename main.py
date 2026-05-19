@@ -1,7 +1,7 @@
 import pandas
 from sklearn.preprocessing import StandardScaler
 
-from benchmark import find_optimal_hyperparameters
+from benchmark import MODELS, find_optimal_hyperparameters
 
 def load_data(csv_path, target_col="target"):
 	df = pandas.read_csv(csv_path)
@@ -20,4 +20,10 @@ if __name__ == "__main__":
 	X, Y = load_data(csv_path="bienetre.csv")
 	standard_scaler_object, X_normalized = nomalize(X)
 
-	grid_search = find_optimal_hyperparameters("knn", X_normalized, Y, scoring="f1_weighted")
+	results = {}
+	for model_name in MODELS:
+		grid_search = find_optimal_hyperparameters(model_name, X_normalized, Y, scoring="f1_weighted")
+		results[model_name] = grid_search.best_score_
+
+	for model_name, score in sorted(results.items(), key=lambda item: item[1], reverse=True):
+		print(f"{model_name}: {score}")
