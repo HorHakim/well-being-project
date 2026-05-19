@@ -25,5 +25,8 @@ if __name__ == "__main__":
 		grid_search = find_optimal_hyperparameters(model_name, X_normalized, Y, scoring="f1_weighted")
 		results[model_name] = grid_search.best_score_
 
+	print("="*100)
+	print("Résumé")
+	print("="*100)
 	for model_name, score in sorted(results.items(), key=lambda item: item[1], reverse=True):
 		print(f"{model_name}: {score}")
