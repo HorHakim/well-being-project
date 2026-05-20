@@ -1,15 +1,12 @@
 from data_loader import load_normalized_data
-from benchmark_model import find_optimal_params
-from sklearn.neighbors import KNeighborsClassifier
+from benchmark_model import find_optimal_model
 
 if __name__ == "__main__":
 	X_normalized, Y, standard_scaler_object = load_normalized_data(file_path="bienetre.csv")
 	
-	best_score, best_params = find_optimal_params(
-		model= KNeighborsClassifier,
+	best_model_name, best_params, best_score = find_optimal_model(
 		X_normalized=X_normalized,
 		Y=Y,
 		n_splits=10,
 		scoring="f1_weighted",
-		param_grid={'n_neighbors': list(range(1, 100, 2))}
 	)
