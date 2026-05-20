@@ -29,10 +29,11 @@ def normalize(X):
 
 
 def load_normalized_data(file_path, target_col="target"):
-	
+	print("Loading data phase")
 	X, Y = load_data(file_path, target_col="target")
 	standard_scaler_object, X_normalized = normalize(X)
 	print("Sucess : Loading data")
+	print("-"*20)
 	return X_normalized, Y, standard_scaler_object
 
 
