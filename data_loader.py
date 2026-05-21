@@ -1,7 +1,6 @@
 import pandas
 from sklearn.preprocessing import StandardScaler
 
-
 def load_data(file_path, target_col="target"):
 	if ".csv" in file_path:
 		df = pandas.read_csv(file_path)
@@ -25,6 +24,7 @@ def load_data(file_path, target_col="target"):
 def normalize(X):
 	standard_scaler_object = StandardScaler()
 	X_normalized = standard_scaler_object.fit_transform(X)
+
 	return standard_scaler_object, X_normalized
 
 
