@@ -2,7 +2,6 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearch
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 
 
 
@@ -52,11 +51,6 @@ def find_optimal_model(
 			'max_depth': [3, 5, 10, 20],
 			'min_samples_split': [2, 5, 10],
 			'criterion': ['gini', 'entropy'],
-		}),
-		"RandomForestClassifier": (RandomForestClassifier, {
-			'n_estimators': [25, 75, 100],
-			'max_depth': [3, 5, 10, 20],
-			'min_samples_split': [2, 5, 10],
 		}),
 	}
 
