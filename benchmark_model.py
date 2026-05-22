@@ -49,13 +49,13 @@ def find_optimal_model(
 			'gamma': ['scale', 'auto'],
 		}),
 		"DecisionTreeClassifier": (DecisionTreeClassifier, {
-			'max_depth': [None, 5, 10, 20, 30],
+			'max_depth': [3, 5, 10, 20],
 			'min_samples_split': [2, 5, 10],
 			'criterion': ['gini', 'entropy'],
 		}),
 		"RandomForestClassifier": (RandomForestClassifier, {
-			'n_estimators': [50, 100, 200],
-			'max_depth': [None, 5, 10, 20],
+			'n_estimators': [25, 75, 100],
+			'max_depth': [3, 5, 10, 20],
 			'min_samples_split': [2, 5, 10],
 		}),
 	}
