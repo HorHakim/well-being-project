@@ -1,2 +1,10 @@
 pandas
 scikit-learn
+matplotlib
+seaborn
+numpy
+fastapi
+uvicorn[standard]
+plotly
+python-multipart
+jinja2

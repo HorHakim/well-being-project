@@ -1,5 +1,8 @@
 from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+
 
 
 
@@ -39,6 +42,16 @@ def find_optimal_model(
 	
 	dict_parms_per_model = {
 		"KNeighborsClassifier": (KNeighborsClassifier, {'n_neighbors': list(range(1, 100, 2))}),
+		"SVC": (SVC, {
+			'C': [0.1, 1, 10, 100],
+			'kernel': ['linear', 'rbf', 'poly'],
+			'gamma': ['scale', 'auto'],
+		}),
+		"DecisionTreeClassifier": (DecisionTreeClassifier, {
+			'max_depth': [3, 5, 10, 20],
+			'min_samples_split': [2, 5, 10],
+			'criterion': ['gini', 'entropy'],
+		}),
 	}
 
 	best_score = -float("inf")

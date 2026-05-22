@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>✨ ML Barbie — Find Your Best Model</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>✨ ML Barbie ✨</h1>
+  <p>Dépose ton dataset, choisis ta cible et laisse la magie opérer 💖</p>
+</header>
+
+<main>
+
+  <!-- ÉTAPE 1 : Upload -->
+  <section id="section-upload" class="card">
+    <h2>💾 Étape 1 — Dépose ton dataset</h2>
+    <div id="drop-zone">
+      <span>📂</span>
+      <p>Glisse ton fichier CSV ou Excel ici</p>
+      <button class="btn" onclick="document.getElementById('file-input').click()">Parcourir</button>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" />
+    </div>
+    <p id="upload-error" style="color:#FF1493;margin-top:1rem;display:none;"></p>
+  </section>
+
+  <!-- ÉTAPE 2 : Sélection colonne cible -->
+  <section id="section-select" class="card hidden">
+    <h2>🎯 Étape 2 — Choisis la colonne cible</h2>
+    <select id="target-select"></select>
+    <button class="btn" onclick="startAnalysis()">Analyser 💖</button>
+  </section>
+
+  <!-- Barre de statut (visible pendant le streaming) -->
+  <div id="status-bar" class="card hidden" style="display:flex;align-items:center;gap:1rem;">
+    <div class="spinner" style="width:32px;height:32px;flex-shrink:0;border-width:4px;margin:0"></div>
+    <p id="status-message" style="color:var(--purple);font-weight:600;margin:0"></p>
+  </div>
+
+  <!-- RÉSULTATS progressifs -->
+  <section id="section-results" class="hidden">
+
+    <!-- Carte modèle (masquée jusqu'au résultat final) -->
+    <div class="card" id="card-model" style="display:none">
+      <h2>🏆 Meilleur modèle</h2>
+      <div class="result-badge">
+        <h3 id="result-model-name">—</h3>
+        <div>Score F1 (weighted) : <span class="score" id="result-score">—</span></div>
+      </div>
+      <h2 style="margin-bottom:0.8rem">⚙️ Hyperparamètres optimaux</h2>
+      <div class="params-grid" id="result-params"></div>
+    </div>
+
+    <!-- Grille des graphiques -->
+    <div class="card">
+      <h2>📊 Visualisations</h2>
+      <div class="chart-grid">
+        <div class="chart-box" id="chart-correlation"><div class="chart-placeholder"><div class="spinner"></div><p>Matrice de corrélation…</p></div></div>
+        <div class="chart-box" id="chart-variance"><div class="chart-placeholder"><div class="spinner"></div><p>Variance cumulée…</p></div></div>
+        <div class="chart-box" id="chart-pca_2d"><div class="chart-placeholder"><div class="spinner"></div><p>PCA 2D…</p></div></div>
+        <div class="chart-box" id="chart-pca_3d"><div class="chart-placeholder"><div class="spinner"></div><p>PCA 3D…</p></div></div>
+      </div>
+    </div>
+
+    <div id="reset-btn-wrap" style="text-align:center;margin-top:1rem;display:none">
+      <button class="btn" onclick="resetApp()">🔄 Nouveau dataset</button>
+    </div>
+
+  </section>
+
+</main>
+
+<footer>Made with 💖 &amp; Python — ML Barbie</footer>
+
+<script>
+  let sessionId = null;
+  let eventSource = null;
+
+  // ── Drag & drop ──────────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) uploadFile(fileInput.files[0]); });
+
+  // ── Upload ────────────────────────────────────────────────────
+  async function uploadFile(file) {
+    const errorEl = document.getElementById('upload-error');
+    errorEl.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Erreur lors du chargement.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    sessionId = data.session_id;
+    const select = document.getElementById('target-select');
+    select.innerHTML = data.columns.map(c => `<option value="${c}">${c}</option>`).join('');
+    show('section-select');
+  }
+
+  // ── Analyse ───────────────────────────────────────────────────
+  async function startAnalysis() {
+    const targetCol = document.getElementById('target-select').value;
+    hide('section-select');
+
+    const formData = new FormData();
+    formData.append('session_id', sessionId);
+    formData.append('target_col', targetCol);
+
+    const res = await fetch('/analyze', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) { showError(data.error); return; }
+
+    // Afficher la section résultats (avec spinners) et la barre de statut
+    show('section-results');
+    showStatusBar('Démarrage de l\'analyse…');
+
+    // Ouvrir le flux SSE
+    eventSource = new EventSource(`/stream/${data.job_id}`);
+
+    eventSource.onmessage = function(event) {
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === 'status') {
+        setStatus(msg.message);
+
+      } else if (msg.type === 'chart') {
+        renderChart('chart-' + msg.id, msg.data);
+
+      } else if (msg.type === 'result') {
+        document.getElementById('result-model-name').textContent = msg.model;
+        document.getElementById('result-score').textContent = msg.score;
+        document.getElementById('result-params').innerHTML = Object.entries(msg.params)
+          .map(([k, v]) => `<div class="param-chip"><strong>${k}</strong> : ${v}</div>`)
+          .join('');
+        document.getElementById('card-model').style.display = 'block';
+
+      } else if (msg.type === 'done') {
+        eventSource.close();
+        hideStatusBar();
+        document.getElementById('reset-btn-wrap').style.display = 'block';
+
+      } else if (msg.type === 'error') {
+        eventSource.close();
+        hideStatusBar();
+        showError(msg.message);
+      }
+    };
+
+    eventSource.onerror = function() {
+      eventSource.close();
+      hideStatusBar();
+    };
+  }
+
+  // ── Rendu graphique ───────────────────────────────────────────
+  function renderChart(divId, jsonStr) {
+    const el = document.getElementById(divId);
+    el.innerHTML = '';
+    const fig = JSON.parse(jsonStr);
+
+    if (divId === 'chart-correlation') {
+      const side = el.offsetWidth;
+      el.style.height = side + 'px';
+      Plotly.newPlot(el, fig.data, {
+        ...fig.layout,
+        width: side,
+        height: side,
+        margin: { t: 50, r: 20, b: 50, l: 80 },
+      }, { responsive: false });
+    } else {
+      Plotly.newPlot(el, fig.data, {
+        ...fig.layout,
+        height: 620,
+        margin: { t: 50, r: 20, b: 50, l: 60 },
+        autosize: true,
+      }, { responsive: true });
+    }
+  }
+
+  // ── Barre de statut ───────────────────────────────────────────
+  function showStatusBar(msg) {
+    const bar = document.getElementById('status-bar');
+    bar.style.display = 'flex';
+    bar.classList.remove('hidden');
+    document.getElementById('status-message').textContent = msg;
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-message').textContent = msg;
+  }
+
+  function hideStatusBar() {
+    document.getElementById('status-bar').style.display = 'none';
+  }
+
+  // ── Reset ─────────────────────────────────────────────────────
+  function resetApp() {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    sessionId = null;
+    hide('section-select');
+    hide('section-results');
+    hideStatusBar();
+    show('section-upload');
+    document.getElementById('file-input').value = '';
+    document.getElementById('upload-error').style.display = 'none';
+    document.getElementById('card-model').style.display = 'none';
+    document.getElementById('reset-btn-wrap').style.display = 'none';
+    // Remettre les spinners dans chaque carte
+    const labels = {'correlation':'Matrice de corrélation…','variance':'Variance cumulée…','pca_2d':'PCA 2D…','pca_3d':'PCA 3D…'};
+    ['correlation','variance','pca_2d','pca_3d'].forEach(id => {
+      const el = document.getElementById('chart-' + id);
+      Plotly.purge(el);
+      el.style.height = '';
+      el.innerHTML = `<div class="chart-placeholder"><div class="spinner"></div><p>${labels[id]}</p></div>`;
+    });
+  }
+
+  function showError(msg) {
+    hideStatusBar();
+    const err = document.getElementById('upload-error');
+    err.textContent = '⚠️ ' + msg;
+    err.style.display = 'block';
+    show('section-upload');
+  }
+
+  function show(id) { document.getElementById(id).classList.remove('hidden'); }
+  function hide(id) { document.getElementById(id).classList.add('hidden'); }
+</script>
+
+</body>
+</html>
